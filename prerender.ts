@@ -16,3 +16,4 @@ async function renderRoute(routePath: string, outFile: string) {
 
 await renderRoute('/', 'index.html')
 await renderRoute('/404', '404.html')
+
