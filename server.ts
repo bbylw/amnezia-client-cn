@@ -1,6 +1,10 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import serverEntry from './dist/server/server.js'
+
+const serverModulePath = './dist/server/server.js'
+const { default: serverEntry } = (await import(serverModulePath)) as {
+  default: { fetch(request: Request): Promise<Response> | Response }
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const clientDir = path.resolve(__dirname, 'dist/client')
