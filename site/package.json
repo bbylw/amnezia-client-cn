@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && bun run prerender.ts",
     "preview": "vite preview",
     "start": "bun run server.ts"
   },
