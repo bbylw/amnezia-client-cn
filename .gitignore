@@ -1,0 +1,16 @@
+# dependencies
+site/node_modules/
+
+# generated output
+site/dist/
+site/.tanstack/
+
+# local tooling state
+.perch/
+
+# logs
+*.log
+
+# system files
+.DS_Store
+Thumbs.db
