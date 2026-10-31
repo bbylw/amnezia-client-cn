@@ -1,13 +1,23 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react'
 import {
   buildRequirements,
   classicProtocols,
   envVars,
+  faqItems,
   features,
   links,
+  manifestoPillars,
   marqueeItems,
   platforms,
   stealthProtocols,
+  taglineWords,
   techStack,
 } from '~/data'
 import {
@@ -53,7 +63,7 @@ const iconMap = {
 const pad = (value: number) => String(value + 1).padStart(2, '0')
 
 const stagger = (index: number, step = 55): CSSProperties =>
- ({ '--d': `${index * step}ms` }) as CSSProperties
+  ({ '--d': `${index * step}ms` }) as CSSProperties
 
 function SectionHead({
   num,
@@ -97,6 +107,107 @@ export function Marquee() {
   )
 }
 
+export function TaglineReveal() {
+  const sectionRef = useRef<HTMLElement>(null)
+  const [activeCount, setActiveCount] = useState(0)
+
+  useEffect(() => {
+    const el = sectionRef.current
+    if (!el) return
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setActiveCount(taglineWords.length)
+      return
+    }
+
+    let frame = 0
+    let inView = false
+
+    const updateWords = () => {
+      frame = 0
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const vh = window.innerHeight
+      const start = vh * 0.85
+      const end = vh * 0.25
+      const progress = Math.min(
+        1,
+        Math.max(0, (start - rect.top) / Math.max(1, start - end)),
+      )
+      const count = Math.max(1, Math.round(progress * taglineWords.length))
+      setActiveCount(count)
+    }
+
+    const onScroll = () => {
+      if (!inView || frame) return
+      frame = requestAnimationFrame(updateWords)
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          inView = entry.isIntersecting
+          if (inView) updateWords()
+        }
+      },
+      { rootMargin: '15% 0px 15% 0px' },
+    )
+
+    io.observe(el)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    updateWords()
+
+    return () => {
+      io.disconnect()
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [])
+
+  return (
+    <section
+      ref={sectionRef}
+      className="section tagline-section"
+      aria-label="核心理念"
+    >
+      <div className="wrap tagline-grid">
+        <div className="tagline-meta">
+          <span className="sec-num">00 / 宣言</span>
+        </div>
+
+        <div className="tagline-box">
+          <span className="eyebrow">Self Hosted Manifesto</span>
+          <p className="tagline-text">
+            {taglineWords.map((word, index) => (
+              <span
+                key={word}
+                className="tagline-word"
+                data-active={index < activeCount}
+              >
+                {word}
+              </span>
+            ))}
+          </p>
+        </div>
+
+        <div className="tagline-pillars">
+          {manifestoPillars.map((pillar, index) => (
+            <div className="pillar-row" key={pillar.code}>
+              <div className="pillar-head">
+                <span className="pillar-code">{pillar.code}</span>
+                <span className="pillar-idx">{pad(index)}</span>
+              </div>
+              <p className="pillar-desc">{pillar.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export function Features() {
   return (
     <section className="section" id="features">
@@ -104,11 +215,7 @@ export function Features() {
         <SectionHead
           num="01 / 能力"
           eyebrow="Features"
-          title={
-            <>
-              自托管，<span className="serif">但不折腾</span>
-            </>
-          }
+          title="自托管，但不折腾"
           desc="Amnezia 把「在服务器上装 VPN」这件事压缩成三个输入框。剩下的协议、容器、证书和路由，它自己处理。"
         />
 
@@ -130,8 +237,24 @@ export function Features() {
                   </span>
                   <span className="feature-index">{pad(index)}</span>
                 </div>
-                <h3>{feature.title}</h3>
-                <p>{feature.body}</p>
+                <div className="feature-content">
+                  <h3>{feature.title}</h3>
+                  <p>{feature.body}</p>
+                  {'href' in feature && feature.href ? (
+                    <a
+                      className="feature-link"
+                      href={feature.href}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                    >
+                      {feature.linkLabel}
+                      <ArrowUpRightIcon />
+                    </a>
+                  ) : null}
+                </div>
+                <div className="feature-foot">
+                  <span>{feature.spec}</span>
+                </div>
               </article>
             )
           })}
@@ -148,11 +271,7 @@ export function Protocols() {
         <SectionHead
           num="02 / 协议"
           eyebrow="Protocols"
-          title={
-            <>
-              经典协议，<span className="serif">还有</span>能过审查的几种
-            </>
-          }
+          title="经典协议，还有能过审查的几种"
           desc="同一份客户端里，既有标准 VPN 协议，也有专门为对抗深度包检测设计的伪装方案。"
         />
 
@@ -160,16 +279,19 @@ export function Protocols() {
           <div className="protocol-col" data-reveal>
             <div className="protocol-head">
               <h3>经典 VPN 协议</h3>
-              <em>Classic</em>
+              <span className="protocol-tag">Classic</span>
             </div>
             <p className="protocol-desc">
               标准、成熟、兼容性好，适合网络环境宽松的场景。
             </p>
             <ul className="protocol-list">
               {classicProtocols.map((protocol, index) => (
-                <li className="protocol-item" key={protocol}>
+                <li className="protocol-item" key={protocol.name}>
                   <span className="protocol-num">{pad(index)}</span>
-                  <span className="protocol-name">{protocol}</span>
+                  <span className="protocol-main">
+                    <span className="protocol-name">{protocol.name}</span>
+                    <span className="protocol-sub">{protocol.tag}</span>
+                  </span>
                   <span className="protocol-chev" aria-hidden="true">
                     <LockIcon />
                   </span>
@@ -181,7 +303,7 @@ export function Protocols() {
           <div className="protocol-col" data-reveal style={stagger(2)}>
             <div className="protocol-head">
               <h3>流量伪装 / 混淆</h3>
-              <em>Obfuscation</em>
+              <span className="protocol-tag">Obfuscation</span>
             </div>
             <p className="protocol-desc">
               让流量看起来不像 VPN，用于网络受限或存在主动探测的环境。
@@ -196,7 +318,10 @@ export function Protocols() {
                     rel="noreferrer noopener"
                   >
                     <span className="protocol-num">{pad(index)}</span>
-                    <span className="protocol-name">{protocol.name}</span>
+                    <span className="protocol-main">
+                      <span className="protocol-name">{protocol.name}</span>
+                      <span className="protocol-sub">{protocol.tag}</span>
+                    </span>
                     <span className="protocol-chev" aria-hidden="true">
                       <ArrowUpRightIcon />
                     </span>
@@ -235,11 +360,7 @@ export function Platforms() {
         <SectionHead
           num="03 / 平台"
           eyebrow="Platforms"
-          title={
-            <>
-              一个客户端，<span className="serif">五个</span>平台
-            </>
-          }
+          title="一个客户端，五个平台"
           desc="Windows、macOS、Linux、Android、iOS 都有官方构建。所有版本都可以在 GitHub Releases 里找到。"
         />
 
@@ -265,8 +386,9 @@ export function Platforms() {
                 </span>
                 <span className="platform-body">
                   <span className="platform-name">{platform.name}</span>
+                  <span className="platform-target">{platform.target}</span>
                   <span className="platform-meta">
-                    官方构建
+                    获取官方构建
                     <ArrowUpRightIcon />
                   </span>
                 </span>
@@ -288,18 +410,29 @@ export function Platforms() {
           </a>
           <a
             className="btn btn--line"
+            href={links.downloadsMirror}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            <GlobeIcon />
+            备用镜像下载
+          </a>
+          <a
+            className="btn btn--line"
             href={links.releases}
             target="_blank"
             rel="noreferrer noopener"
           >
             <GithubIcon />
-            所有版本
+            GitHub Releases 所有版本
           </a>
         </div>
       </div>
     </section>
   )
 }
+
+const submoduleCode = `git submodule update --init --recursive`
 
 const unixCode = `# 为主机平台构建可执行文件
 deploy/build.sh
@@ -346,21 +479,60 @@ function CodeLines({ code }: { code: string }) {
 
 export function Build() {
   const [tab, setTab] = useState<'unix' | 'win'>('unix')
-  const [copied, setCopied] = useState(false)
+  const [copiedSubmodule, setCopiedSubmodule] = useState(false)
+  const [copiedBuild, setCopiedBuild] = useState(false)
+  const subTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const buildTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const activeCode = tab === 'unix' ? unixCode : winCode
+
+  useEffect(() => {
+    return () => {
+      if (subTimerRef.current) clearTimeout(subTimerRef.current)
+      if (buildTimerRef.current) clearTimeout(buildTimerRef.current)
+    }
+  }, [])
 
   const changeTab = (next: 'unix' | 'win') => {
     setTab(next)
-    setCopied(false)
+    setCopiedBuild(false)
+    if (buildTimerRef.current) {
+      clearTimeout(buildTimerRef.current)
+      buildTimerRef.current = null
+    }
   }
 
-  const copyCode = async () => {
+  const onTabKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+      event.preventDefault()
+      changeTab(tab === 'unix' ? 'win' : 'unix')
+    }
+  }
+
+  const copySubmodule = async () => {
+    try {
+      await navigator.clipboard.writeText(submoduleCode)
+      setCopiedSubmodule(true)
+      if (subTimerRef.current) clearTimeout(subTimerRef.current)
+      subTimerRef.current = setTimeout(() => {
+        setCopiedSubmodule(false)
+        subTimerRef.current = null
+      }, 1800)
+    } catch {
+      setCopiedSubmodule(false)
+    }
+  }
+
+  const copyBuild = async () => {
     try {
       await navigator.clipboard.writeText(activeCode)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1800)
+      setCopiedBuild(true)
+      if (buildTimerRef.current) clearTimeout(buildTimerRef.current)
+      buildTimerRef.current = setTimeout(() => {
+        setCopiedBuild(false)
+        buildTimerRef.current = null
+      }, 1800)
     } catch {
-      setCopied(false)
+      setCopiedBuild(false)
     }
   }
 
@@ -370,11 +542,7 @@ export function Build() {
         <SectionHead
           num="04 / 构建"
           eyebrow="Build from source"
-          title={
-            <>
-              从源码<span className="serif">构建</span>
-            </>
-          }
+          title="从源码构建"
           desc="检出仓库后先拉取子模块，然后按平台准备依赖。deploy 目录下的脚本会在默认安装路径下自动找到依赖。"
         />
 
@@ -383,7 +551,7 @@ export function Build() {
             <span className="step-num">01</span>
             <div className="step-body">
               <h4>检出源代码</h4>
-              <p>检出仓库后，请务必拉取所有子模块。</p>
+              <p>检出仓库后，请务必递归拉取所有 Git 子模块。</p>
               <div className="code">
                 <div className="code-bar">
                   <span className="code-bar-left">
@@ -392,14 +560,20 @@ export function Build() {
                       <span />
                       <span />
                     </span>
-                    shell
+                    shell · git submodule
                   </span>
-                  <span>git submodule</span>
+                  <button
+                    className="code-copy"
+                    type="button"
+                    data-copied={copiedSubmodule}
+                    onClick={copySubmodule}
+                  >
+                    {copiedSubmodule ? <CheckIcon /> : <CopyIcon />}
+                    {copiedSubmodule ? '已复制' : '复制命令'}
+                  </button>
                 </div>
                 <pre>
-                  <span className="cmd">
-                    git submodule update --init --recursive
-                  </span>
+                  <span className="cmd">{submoduleCode}</span>
                 </pre>
               </div>
             </div>
@@ -409,16 +583,16 @@ export function Build() {
             <span className="step-num">02</span>
             <div className="step-body">
               <h4>准备构建依赖</h4>
-              <p>核心依赖如下，安装包相关工具为可选项。</p>
-              <div className="chips">
-                {buildRequirements.map((requirement) => (
-                  <span
-                    className="chip"
-                    key={requirement.name}
-                    title={requirement.note}
-                  >
-                    {requirement.name}
-                  </span>
+              <p>核心依赖与各平台编译工具要求如下，打包工具为可选项。</p>
+              <div className="req-grid">
+                {buildRequirements.map((requirement, index) => (
+                  <div className="req-card" key={requirement.name}>
+                    <div className="req-head">
+                      <span className="req-name">{requirement.name}</span>
+                      <span className="req-idx">{pad(index)}</span>
+                    </div>
+                    <p className="req-note">{requirement.note}</p>
+                  </div>
                 ))}
               </div>
             </div>
@@ -434,28 +608,46 @@ export function Build() {
                 <code>ANDROID_HOME</code>。
               </p>
 
-              <div className="tabs" role="group" aria-label="构建脚本">
+              <div
+                className="tabs"
+                role="tablist"
+                aria-label="构建脚本平台选择"
+                onKeyDown={onTabKeyDown}
+              >
                 <button
+                  id="tab-unix"
                   className="tab"
                   type="button"
+                  role="tab"
                   data-active={tab === 'unix'}
-                  aria-pressed={tab === 'unix'}
+                  aria-selected={tab === 'unix'}
+                  aria-controls="build-code-panel"
+                  tabIndex={tab === 'unix' ? 0 : -1}
                   onClick={() => changeTab('unix')}
                 >
                   类 Unix
                 </button>
                 <button
+                  id="tab-win"
                   className="tab"
                   type="button"
+                  role="tab"
                   data-active={tab === 'win'}
-                  aria-pressed={tab === 'win'}
+                  aria-selected={tab === 'win'}
+                  aria-controls="build-code-panel"
+                  tabIndex={tab === 'win' ? 0 : -1}
                   onClick={() => changeTab('win')}
                 >
                   Windows
                 </button>
               </div>
 
-              <div className="code">
+              <div
+                id="build-code-panel"
+                className="code"
+                role="tabpanel"
+                aria-labelledby={tab === 'unix' ? 'tab-unix' : 'tab-win'}
+              >
                 <div className="code-bar">
                   <span className="code-bar-left">
                     <span className="code-dots" aria-hidden="true">
@@ -463,16 +655,16 @@ export function Build() {
                       <span />
                       <span />
                     </span>
-                    {tab === 'unix' ? 'bash' : 'batch'}
+                    {tab === 'unix' ? 'bash · deploy/build.sh' : 'batch · deploy/build.bat'}
                   </span>
                   <button
                     className="code-copy"
                     type="button"
-                    data-copied={copied}
-                    onClick={copyCode}
+                    data-copied={copiedBuild}
+                    onClick={copyBuild}
                   >
-                    {copied ? <CheckIcon /> : <CopyIcon />}
-                    {copied ? '已复制' : '复制'}
+                    {copiedBuild ? <CheckIcon /> : <CopyIcon />}
+                    {copiedBuild ? '已复制' : '复制脚本'}
                   </button>
                 </div>
                 <pre>
@@ -507,8 +699,7 @@ export function Build() {
                 <code>AmneziaVPN.xcodeproj</code>。改动实际发生在构建目录中，注意手动复制。
               </p>
               <p>
-                Android Studio 同理：配置后打开{' '}
-                <code>&lt;build-dir&gt;/client/android-build</code>。
+                Android Studio 同理：配置后打开构建目录下的客户端 Android 工程目录。
               </p>
             </div>
           </div>
@@ -527,9 +718,7 @@ export function Translate() {
       <div className="wrap cta-inner">
         <div data-reveal>
           <span className="cta-eyebrow">05 / Contribution</span>
-          <h2 className="cta-title">
-            帮忙<span className="serif">翻译</span>
-          </h2>
+          <h2 className="cta-title">参与界面翻译</h2>
           <p className="cta-copy">
             打开 GitHub Actions 标签页，点第一行成功构建，滚动到 Artifacts 下载{' '}
             <code>AmneziaVPN_translations</code>。解压后每个 <code>*.ts</code>{' '}
@@ -558,7 +747,7 @@ export function Translate() {
               rel="noreferrer noopener"
             >
               <GithubIcon />
-              前往 Actions
+              前往 Actions 下载翻译包
               <ArrowUpRightIcon />
             </a>
             <a
@@ -568,7 +757,7 @@ export function Translate() {
               rel="noreferrer noopener"
             >
               <TranslateIcon />
-              查看仓库
+              查看 GitHub 仓库
             </a>
           </div>
         </div>
@@ -584,30 +773,74 @@ export function TechStack() {
         <SectionHead
           num="06 / 技术栈"
           eyebrow="Open source stack"
-          title={
-            <>
-              站在这些<span className="serif">开源项目</span>上
-            </>
-          }
-          desc="AmneziaVPN 依赖多个开源项目才能运行。"
+          title="站在这些开源项目之上"
+          desc="AmneziaVPN 依赖多个成熟开源项目协同运行。"
         />
 
         <div className="stack">
           {techStack.map((item, index) => (
-            <span
+            <a
               className="stack-item"
-              key={item}
+              key={item.name}
+              href={item.href}
+              target="_blank"
+              rel="noreferrer noopener"
               data-reveal
               style={stagger(index, 35)}
             >
-              <span className="stack-idx">{pad(index)}</span>
-              {item}
-            </span>
+              <div className="stack-top">
+                <span className="stack-idx">{pad(index)}</span>
+                <ArrowUpRightIcon />
+              </div>
+              <span className="stack-name">{item.name}</span>
+              <span className="stack-role">{item.role}</span>
+            </a>
           ))}
-          <span className="stack-item" data-reveal style={stagger(7, 35)}>
-            <span className="stack-idx">08</span>
-            以及更多……
-          </span>
+          <a
+            className="stack-item"
+            href={links.repo}
+            target="_blank"
+            rel="noreferrer noopener"
+            data-reveal
+            style={stagger(7, 35)}
+          >
+            <div className="stack-top">
+              <span className="stack-idx">08</span>
+              <ArrowUpRightIcon />
+            </div>
+            <span className="stack-name">以及更多……</span>
+            <span className="stack-role">Third Party Open Source</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+export function Faq() {
+  return (
+    <section className="section" id="faq">
+      <div className="wrap">
+        <SectionHead
+          num="07 / 问答"
+          eyebrow="FAQ"
+          title="常见问题解答"
+          desc="关于自托管部署、抗审查协议、分流配置与源码构建的核心问题。"
+        />
+
+        <div className="faq-grid">
+          {faqItems.map((item, index) => (
+            <article
+              className="faq-card"
+              key={item.q}
+              data-reveal
+              style={stagger(index, 40)}
+            >
+              <span className="faq-num">{pad(index)}</span>
+              <h3 className="faq-q">{item.q}</h3>
+              <p className="faq-a">{item.a}</p>
+            </article>
+          ))}
         </div>
       </div>
     </section>
@@ -623,24 +856,24 @@ const resourceLinks = [
   },
   {
     name: '备用官网（镜像）',
-    meta: 'storage.googleapis.com',
+    meta: 'storage.googleapis.com/amnezia/amnezia.org',
     href: links.siteMirror,
     icon: GlobeIcon,
   },
   {
-    name: '文档',
+    name: '官方文档',
     meta: 'docs.amnezia.org',
     href: links.docs,
     icon: BookIcon,
   },
   {
     name: '文档镜像',
-    meta: 'storage.googleapis.com',
+    meta: 'storage.googleapis.com/amnezia/docs',
     href: links.docsMirror,
     icon: BookIcon,
   },
   {
-    name: '故障排查',
+    name: '故障排查指南',
     meta: 'docs.amnezia.org/troubleshooting',
     href: links.troubleshooting,
     icon: WarnIcon,
@@ -652,31 +885,43 @@ const resourceLinks = [
     icon: GithubIcon,
   },
   {
-    name: 'Reddit',
+    name: 'English README',
+    meta: 'github.com/amnezia-vpn/amnezia-client',
+    href: links.readmeEn,
+    icon: BookIcon,
+  },
+  {
+    name: 'Русский README',
+    meta: 'github.com/amnezia-vpn/amnezia-client',
+    href: links.readmeRu,
+    icon: BookIcon,
+  },
+  {
+    name: 'Reddit 社区',
     meta: 'r/AmneziaVPN',
     href: links.reddit,
     icon: RedditIcon,
   },
   {
-    name: 'Telegram 英文',
+    name: 'Telegram 英文频道',
     meta: 'amnezia_vpn_en',
     href: links.tgEn,
     icon: TelegramIcon,
   },
   {
-    name: 'Telegram 波斯语',
+    name: 'Telegram 波斯语频道',
     meta: 'amnezia_vpn_ir',
     href: links.tgIr,
     icon: TelegramIcon,
   },
   {
-    name: 'Telegram 缅甸语',
+    name: 'Telegram 缅甸语频道',
     meta: 'amnezia_vpn_mm',
     href: links.tgMm,
     icon: TelegramIcon,
   },
   {
-    name: 'Telegram 俄语',
+    name: 'Telegram 俄语频道',
     meta: 'amnezia_vpn',
     href: links.tgRu,
     icon: TelegramIcon,
@@ -694,14 +939,10 @@ export function Resources() {
     <section className="section" id="links">
       <div className="wrap">
         <SectionHead
-          num="07 / 资源"
+          num="08 / 资源"
           eyebrow="Links"
-          title={
-            <>
-              官方入口<span className="serif">与社区</span>
-            </>
-          }
-          desc="如果你的地区无法访问主站，可以使用镜像链接。"
+          title="官方入口与多语言社区"
+          desc="如果你的地区无法访问主站，可以直接使用镜像链接。"
         />
 
         <div className="resource-grid">
@@ -743,12 +984,11 @@ export function Support() {
     <section className="section support theme-ink" id="support">
       <div className="wrap support-inner">
         <div data-reveal>
-          <span className="eyebrow">08 / Support</span>
-          <h2 className="support-title">
-            遇到<span className="serif">问题</span>？
-          </h2>
+          <span className="eyebrow">09 / Support</span>
+          <h2 className="support-title">准备部署你的专属 VPN？</h2>
           <p className="support-copy">
-            先看故障排查文档，再去 Telegram 或{' '}
+            立即下载全平台客户端；如遇连接或服务器配置问题，可先查阅故障排查文档，或前往
+            Telegram 与{' '}
             <a
               className="inline-link"
               href={links.reddit}
@@ -757,21 +997,31 @@ export function Support() {
             >
               Reddit
             </a>{' '}
-            找社区。
+            社区交流。
           </p>
           <div className="support-meta">
-            Community channels · Telegram · Reddit
+            Open Source · GPLv3 · Self Hosted VPN
           </div>
         </div>
 
         <div className="support-actions" data-reveal style={stagger(1)}>
           <a
             className="btn btn--accent"
+            href={links.downloads}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            <DownloadIcon />
+            下载客户端
+            <ArrowUpRightIcon />
+          </a>
+          <a
+            className="btn btn--line"
             href={links.troubleshooting}
             target="_blank"
             rel="noreferrer noopener"
           >
-            故障排查
+            故障排查文档
             <ArrowUpRightIcon />
           </a>
           <a
@@ -795,7 +1045,10 @@ export function Footer() {
       <div className="wrap">
         <div className="footer-wordmark" aria-hidden="true">
           <span>Amnezia</span>
-          <span className="asterisk">*</span>
+          <div className="footer-stamp">
+            <span className="stamp-tag">SELF HOSTED VPN CLIENT</span>
+            <span className="stamp-sub">OPEN SOURCE · GPLV3 · 5 PLATFORMS</span>
+          </div>
         </div>
 
         <div className="footer-top">
@@ -818,12 +1071,31 @@ export function Footer() {
               自托管 VPN 的最佳客户端。开源、抗审查、全平台。本页面为中文介绍站，内容整理自项目
               README。
             </p>
+            <p className="footer-ack">
+              本项目使用{' '}
+              <a
+                className="inline-link"
+                href={links.browserstack}
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                BrowserStack
+              </a>{' '}
+              进行测试，感谢 BrowserStack 对本项目的支持。
+            </p>
           </div>
 
           <div className="footer-col">
             <h5>产品</h5>
             <a href={links.downloads} target="_blank" rel="noreferrer noopener">
-              下载
+              官网下载
+            </a>
+            <a
+              href={links.downloadsMirror}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              镜像下载
             </a>
             <a href={links.releases} target="_blank" rel="noreferrer noopener">
               所有版本
@@ -834,7 +1106,7 @@ export function Footer() {
           </div>
 
           <div className="footer-col">
-            <h5>文档</h5>
+            <h5>文档与源码</h5>
             <a href={links.docs} target="_blank" rel="noreferrer noopener">
               官方文档
             </a>
@@ -848,6 +1120,9 @@ export function Footer() {
             <a href={links.amneziawg} target="_blank" rel="noreferrer noopener">
               AmneziaWG
             </a>
+            <a href={links.readmeEn} target="_blank" rel="noreferrer noopener">
+              English README
+            </a>
           </div>
 
           <div className="footer-col">
@@ -859,16 +1134,19 @@ export function Footer() {
               Reddit
             </a>
             <a href={links.tgEn} target="_blank" rel="noreferrer noopener">
-              Telegram
+              Telegram 英文
+            </a>
+            <a href={links.tgRu} target="_blank" rel="noreferrer noopener">
+              Telegram 俄语
             </a>
           </div>
         </div>
 
         <div className="footer-bottom">
-          <span>GPLv3 · 第三方组件遵循各自条款</span>
+          <span>GPLv3 开源许可 · 第三方组件遵循各自条款</span>
           <span className="heart">
             <HeartIcon />
-            由社区维护
+            由开源社区维护
           </span>
           <a className="to-top" href="#top">
             回到顶部

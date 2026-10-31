@@ -6,18 +6,9 @@ const base = {
   viewBox: '0 0 24 24',
   fill: 'none',
   stroke: 'currentColor',
-  strokeWidth: 1.7,
+  strokeWidth: 1.75,
   strokeLinecap: 'round' as const,
   strokeLinejoin: 'round' as const,
-}
-
-export function ShieldIcon(p: P) {
-  return (
-    <svg {...base} {...p}>
-      <path d="M12 3l7 3.5v5.2c0 4.4-3 7.6-7 9.3-4-1.7-7-4.9-7-9.3V6.5L12 3z" />
-      <path d="M9.2 12.1l2 2 3.6-3.9" />
-    </svg>
-  )
 }
 
 export function BoltIcon(p: P) {
@@ -88,27 +79,11 @@ export function LockIcon(p: P) {
   )
 }
 
-export function CodeIcon(p: P) {
-  return (
-    <svg {...base} {...p}>
-      <path d="M8.5 8.5L4 12l4.5 3.5M15.5 8.5L20 12l-4.5 3.5" />
-    </svg>
-  )
-}
-
 export function GlobeIcon(p: P) {
   return (
     <svg {...base} {...p}>
       <circle cx="12" cy="12" r="8.5" />
       <path d="M3.5 12h17M12 3.5c2.4 2.6 3.6 5.4 3.6 8.5S14.4 18.4 12 20.5c-2.4-2.1-3.6-5.4-3.6-8.5S9.6 6.1 12 3.5z" />
-    </svg>
-  )
-}
-
-export function ChatIcon(p: P) {
-  return (
-    <svg {...base} {...p}>
-      <path d="M20.5 12c0 4.1-3.8 7.4-8.5 7.4-1 0-2-.15-2.9-.42L4 20.5l1.4-3.7A7 7 0 013.5 12C3.5 7.9 7.3 4.6 12 4.6s8.5 3.3 8.5 7.4z" />
     </svg>
   )
 }
@@ -169,15 +144,6 @@ export function PowerIcon(p: P) {
     <svg {...base} {...p}>
       <path d="M12 3.5v8.5" />
       <path d="M7 6.2a8 8 0 109.9 0" />
-    </svg>
-  )
-}
-
-export function TerminalIcon(p: P) {
-  return (
-    <svg {...base} {...p}>
-      <rect x="3" y="4.5" width="18" height="15" rx="2" />
-      <path d="M7 9.5l3 2.5-3 2.5M13 15h4" />
     </svg>
   )
 }

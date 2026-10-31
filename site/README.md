@@ -7,25 +7,26 @@
 ```bash
 cd site
 bun install
-bun run dev        # http://localhost:3000
+portless           # https://amnezia-vpn-site.localhost
 ```
 
 ## 构建与生产启动
 
 ```bash
-bun run build      # 输出到 dist/
-bun run start      # 用 bun 跑 dist/server/server.js
+bun run build                  # 输出到 dist/
+portless --script start        # 通过 server.ts 启动生产服务并映射至 https://amnezia-vpn-site.localhost
 ```
 
 ## 结构
 
 ```
+server.ts               Bun 生产环境 HTTP 入口（静态资源 + SSR 路由分发）
 src/
-  routes/__root.tsx     HTML 外壳、meta、lang="zh-CN"
+  routes/__root.tsx     HTML 外壳、meta、404 视图、lang="zh-CN"
   routes/index.tsx      首页，组合各区块
-  components/Nav.tsx    顶栏（滚动时加边框）
+  components/Nav.tsx    悬浮毛玻璃顶栏（零重渲染进度条、当前区块高亮、移动端焦点陷阱）
   components/Hero.tsx   首屏 + 隧道状态卡片
-  components/Sections.tsx  功能 / 协议 / 平台 / 构建 / 翻译 / 技术栈 / 资源 / 支持 / 页脚
+  components/Sections.tsx  标语点亮 / 功能 / 协议 / 平台 / 构建 / 翻译 / 技术栈 / 问答 / 资源 / 支持 / 页脚
   components/icons.tsx  内联 SVG 图标，无图标库依赖
   data.ts               所有文案与链接的唯一来源
   styles/app.css        设计系统（CSS 变量 + 组件类）
@@ -33,6 +34,6 @@ src/
 
 ## 约定
 
-- 所有外链、协议名、捐赠地址集中在 `src/data.ts`，改内容只改这一个文件。
+- 所有外链与协议说明集中在 `src/data.ts`，改内容只改这一个文件（故意略去捐赠章节）。
 - 页面内容全部来自项目 README，未添加 README 之外的论断。
-- 未使用 Tailwind 或 UI 库，样式是手写 CSS，构建产物 CSS 约 15 KB。
+- 样式采用手写 CSS 设计系统，统一字阶、间距、深色色板与无障碍状态。
